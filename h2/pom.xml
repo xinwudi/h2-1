@@ -24,8 +24,8 @@
   </licenses>
 
   <scm>
-    <connection>scm:git:https://github.com/h2database/h2database</connection>
-    <url>https://github.com/h2database/h2database</url>
+    <connection>scm:git:https://github.com/bj-tydic/h2database</connection>
+    <url>https://github.com/bj-tydic/h2database</url>
   </scm>
 
   <developers>
