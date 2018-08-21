@@ -35,7 +35,7 @@ import org.h2.util.Utils;
 
 /**
  * A implementation of the BLOB and CLOB data types.
- *
+ * <p>
  * Small objects are kept in memory and stored in the record.
  * Large objects are either stored in the database, or in temporary files.
  */
@@ -65,7 +65,7 @@ public class ValueLobDb extends Value implements Value.ValueClob,
     private boolean isRecoveryReference;
 
     private ValueLobDb(int type, DataHandler handler, int tableId, long lobId,
-            byte[] hmac, long precision) {
+                       byte[] hmac, long precision) {
         this.type = type;
         this.handler = handler;
         this.tableId = tableId;
@@ -125,7 +125,7 @@ public class ValueLobDb extends Value implements Value.ValueClob,
      * Create a BLOB in a temporary file.
      */
     private ValueLobDb(DataHandler handler, byte[] buff, int len, InputStream in,
-            long remaining) throws IOException {
+                       long remaining) throws IOException {
         this.type = Value.BLOB;
         this.handler = handler;
         this.small = null;
@@ -167,16 +167,16 @@ public class ValueLobDb extends Value implements Value.ValueClob,
     /**
      * Create a LOB value.
      *
-     * @param type the type
-     * @param handler the data handler
-     * @param tableId the table id
-     * @param id the lob id
-     * @param hmac the message authentication code
+     * @param type      the type
+     * @param handler   the data handler
+     * @param tableId   the table id
+     * @param id        the lob id
+     * @param hmac      the message authentication code
      * @param precision the precision (number of bytes / characters)
      * @return the value
      */
     public static ValueLobDb create(int type, DataHandler handler,
-            int tableId, long id, byte[] hmac, long precision) {
+                                    int tableId, long id, byte[] hmac, long precision) {
         return new ValueLobDb(type, handler, tableId, id, hmac, precision);
     }
 
@@ -184,12 +184,12 @@ public class ValueLobDb extends Value implements Value.ValueClob,
      * Convert a lob to another data type. The data is fully read in memory
      * except when converting to BLOB or CLOB.
      *
-     * @param t the new type
-     * @param precision the precision
-     * @param mode the mode
-     * @param column the column (if any), used for to improve the error message if conversion fails
+     * @param t           the new type
+     * @param precision   the precision
+     * @param mode        the mode
+     * @param column      the column (if any), used for to improve the error message if conversion fails
      * @param enumerators the ENUM datatype enumerators (if any),
-     *        for dealing with ENUM conversions
+     *                    for dealing with ENUM conversions
      * @return the converted value
      */
     @Override
@@ -285,19 +285,10 @@ public class ValueLobDb extends Value implements Value.ValueClob,
         int len = precision > Integer.MAX_VALUE || precision == 0 ?
                 Integer.MAX_VALUE : (int) precision;
         try {
-            if (type == Value.CLOB) {
-                if (small != null) {
-                    return new String(small, StandardCharsets.UTF_8);
-                }
-                return IOUtils.readStringAndClose(getReader(), len);
-            }
-            byte[] buff;
             if (small != null) {
-                buff = small;
-            } else {
-                buff = IOUtils.readBytesAndClose(getInputStream(), len);
+                return new String(small, StandardCharsets.UTF_8);
             }
-            return StringUtils.convertBytesToHex(buff);
+            return IOUtils.readStringAndClose(getReader(), len);
         } catch (IOException e) {
             throw DbException.convertIOException(e, toString());
         }
@@ -535,13 +526,13 @@ public class ValueLobDb extends Value implements Value.ValueClob,
     /**
      * Create a temporary CLOB value from a stream.
      *
-     * @param in the reader
-     * @param length the number of characters to read, or -1 for no limit
+     * @param in      the reader
+     * @param length  the number of characters to read, or -1 for no limit
      * @param handler the data handler
      * @return the lob value
      */
     public static ValueLobDb createTempClob(Reader in, long length,
-            DataHandler handler) {
+                                            DataHandler handler) {
         if (length >= 0) {
             // Otherwise BufferedReader may try to read more data than needed and that
             // blocks the network level
@@ -588,13 +579,13 @@ public class ValueLobDb extends Value implements Value.ValueClob,
     /**
      * Create a temporary BLOB value from a stream.
      *
-     * @param in the input stream
-     * @param length the number of characters to read, or -1 for no limit
+     * @param in      the input stream
+     * @param length  the number of characters to read, or -1 for no limit
      * @param handler the data handler
      * @return the lob value
      */
     public static ValueLobDb createTempBlob(InputStream in, long length,
-            DataHandler handler) {
+                                            DataHandler handler) {
         try {
             long remaining = Long.MAX_VALUE;
             boolean compress = handler.getLobCompressionAlgorithm(Value.BLOB) != null;
@@ -621,7 +612,7 @@ public class ValueLobDb extends Value implements Value.ValueClob,
     }
 
     private static int getBufferSize(DataHandler handler, boolean compress,
-            long remaining) {
+                                     long remaining) {
         if (remaining < 0 || remaining > Integer.MAX_VALUE) {
             remaining = Integer.MAX_VALUE;
         }
@@ -682,7 +673,7 @@ public class ValueLobDb extends Value implements Value.ValueClob,
     /**
      * Create a LOB object that fits in memory.
      *
-     * @param type the type (Value.BLOB or CLOB)
+     * @param type  the type (Value.BLOB or CLOB)
      * @param small the byte array
      * @return the LOB
      */
@@ -699,13 +690,13 @@ public class ValueLobDb extends Value implements Value.ValueClob,
     /**
      * Create a LOB object that fits in memory.
      *
-     * @param type the type (Value.BLOB or CLOB)
-     * @param small the byte array
+     * @param type      the type (Value.BLOB or CLOB)
+     * @param small     the byte array
      * @param precision the precision
      * @return the LOB
      */
     public static ValueLobDb createSmallLob(int type, byte[] small,
-            long precision) {
+                                            long precision) {
         return new ValueLobDb(type, small, precision);
     }
 

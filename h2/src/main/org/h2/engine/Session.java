@@ -106,7 +106,7 @@ public class Session extends SessionWithState {
     private boolean redoLogBinary = true;
     private boolean autoCommitAtTransactionEnd;
     private String currentTransactionName;
-    private volatile long cancelAtNs;
+    protected volatile long cancelAtNs;
     private boolean closed;
     private final long sessionStart = System.currentTimeMillis();
     private long transactionStart;
@@ -127,7 +127,7 @@ public class Session extends SessionWithState {
     private final Deque<String> viewNameStack = new ArrayDeque<>();
     private int preparingQueryExpression;
     private volatile SmallLRUCache<Object, ViewIndex> viewIndexCache;
-    private HashMap<Object, ViewIndex> subQueryIndexCache;
+    protected HashMap<Object, ViewIndex> subQueryIndexCache;
     private boolean joinBatchEnabled;
     private boolean forceJoinOrder;
     private boolean lazyQueryExecution;
@@ -193,6 +193,14 @@ public class Session extends SessionWithState {
 
     public boolean isJoinBatchEnabled() {
         return joinBatchEnabled;
+    }
+
+    public Prepared wrap(Prepared prepared) {
+        return prepared;
+    }
+
+    public Parser getParser() {
+        return new Parser(this);
     }
 
     /**
@@ -263,6 +271,9 @@ public class Session extends SessionWithState {
         return parsingView != 0;
     }
 
+    public boolean isParsingView() {
+        return isParsingCreateView();
+    }
     /**
      * Optimize a query. This will remember the subquery info, clear it, prepare
      * the query, and reset the subquery info.
@@ -557,7 +568,11 @@ public class Session extends SessionWithState {
      * @return the prepared statement
      */
     public Prepared prepare(String sql) {
-        return prepare(sql, false, false);
+        return prepare(sql, false);
+    }
+
+    public Prepared prepare(String sql, boolean rightsChecked) {
+        return prepare(sql, rightsChecked, false);
     }
 
     /**
@@ -1257,6 +1272,10 @@ public class Session extends SessionWithState {
             long now = System.nanoTime();
             cancelAtNs = now + TimeUnit.MILLISECONDS.toNanos(queryTimeout);
         }
+    }
+
+    public void setCurrentCommand(Command command) {
+        setCurrentCommand(command,false);
     }
 
     /**

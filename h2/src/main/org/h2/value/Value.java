@@ -20,6 +20,7 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
 import org.h2.api.ErrorCode;
+import org.h2.engine.Constants;
 import org.h2.engine.Mode;
 import org.h2.engine.SysProperties;
 import org.h2.message.DbException;
@@ -294,6 +295,16 @@ public abstract class Value {
      * @return the order number
      */
     static int getOrder(int type) {
+        switch(type){
+            case ValueYear.TYPE:
+                type=SHORT;
+                break;
+            case ValueInterval.TYPE:
+                type=UNKNOWN;
+                break;
+            default:
+                break;
+        }
         switch (type) {
         case UNKNOWN:
             return 1_000;
@@ -589,8 +600,57 @@ public abstract class Value {
     public Value convertTo(int targetType) {
         // Use -1 to indicate "default behaviour" where value conversion should not
         // depend on any datatype precision.
-        return convertTo(targetType, -1, null);
+            return convertTo(targetType, -1, null);
     }
+
+    public Value convertTo(Value value, int targetType) {
+        int valueType = value.getType();
+        if (targetType == valueType) {
+            return value;
+        }
+        switch (targetType) {
+            case ValueYear.TYPE:
+                return ValueYear.get(value);
+            case Value.BLOB:
+                if (DataType.isStringType(valueType)) {
+                    return ValueLobDb.createSmallLob(
+                            Value.BLOB, value.getString().getBytes(Constants.UTF8));
+                }
+                break;
+            default:
+                break;
+        }
+        switch (valueType) {
+            case ValueYear.TYPE:
+                switch (targetType) {
+                    case Value.TIMESTAMP:
+                        return ValueTimestamp.parse(value.getString() + "-01-01");
+                    default:
+                        break;
+                }
+                break;
+            case Value.TIMESTAMP:
+                switch (targetType) {
+                    case Value.LONG:
+                        return ValueLong.get(Long.parseLong(DateTimeUtils.formatDateTime(value.getTimestamp(), "yyyyMMddHHmmss", null, null)));
+                    case Value.DOUBLE:
+                        return ValueDouble.get(Long.parseLong(DateTimeUtils.formatDateTime(value.getTimestamp(), "yyyyMMddHHmmss", null, null)));
+                }
+                break;
+            case Value.DATE:
+                switch (targetType) {
+                    case Value.LONG:
+                        return ValueLong.get(Long.parseLong(DateTimeUtils.formatDateTime(value.getTimestamp(), "yyyyMMdd", null, null)));
+                    case Value.DOUBLE:
+                        return ValueDouble.get(Long.parseLong(DateTimeUtils.formatDateTime(value.getTimestamp(), "yyyyMMdd", null, null)));
+                }
+                break;
+            default:
+                break;
+        }
+        return null;
+    }
+
 
     /**
      * Convert value to ENUM value
@@ -633,10 +693,11 @@ public abstract class Value {
     public Value convertTo(int targetType, int precision, Mode mode, Object column, String[] enumerators) {
         // converting NULL is done in ValueNull
         // converting BLOB to CLOB and vice versa is done in ValueLob
-        if (getType() == targetType) {
-            return this;
-        }
         try {
+            Value value = convertTo(this, targetType);
+            if (value != null) {
+                return value;
+            }
             // decimal conversion
             switch (targetType) {
             case BOOLEAN: {
@@ -1113,8 +1174,12 @@ public abstract class Value {
                 throw DbException.throwInternalError("type=" + targetType);
             }
         } catch (NumberFormatException e) {
-            throw DbException.get(
-                    ErrorCode.DATA_CONVERSION_ERROR_1, e, getString());
+            if (targetType == DATE) {
+                return ValueNull.INSTANCE;
+            } else {
+                throw DbException.get(
+                        ErrorCode.DATA_CONVERSION_ERROR_1, e, getString());
+            }
         }
     }
 

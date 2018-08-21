@@ -105,34 +105,9 @@ import org.h2.engine.SysProperties;
 import org.h2.engine.User;
 import org.h2.engine.UserAggregate;
 import org.h2.engine.UserDataType;
-import org.h2.expression.Aggregate;
+import org.h2.expression.*;
 import org.h2.expression.Aggregate.AggregateType;
-import org.h2.expression.Alias;
-import org.h2.expression.CompareLike;
-import org.h2.expression.Comparison;
-import org.h2.expression.ConditionAndOr;
-import org.h2.expression.ConditionExists;
-import org.h2.expression.ConditionIn;
-import org.h2.expression.ConditionInParameter;
-import org.h2.expression.ConditionInSelect;
-import org.h2.expression.ConditionNot;
-import org.h2.expression.Expression;
-import org.h2.expression.ExpressionColumn;
-import org.h2.expression.ExpressionList;
-import org.h2.expression.Function;
-import org.h2.expression.FunctionCall;
-import org.h2.expression.JavaAggregate;
-import org.h2.expression.JavaFunction;
-import org.h2.expression.Operation;
 import org.h2.expression.Operation.OpType;
-import org.h2.expression.Parameter;
-import org.h2.expression.Rownum;
-import org.h2.expression.SequenceValue;
-import org.h2.expression.Subquery;
-import org.h2.expression.TableFunction;
-import org.h2.expression.ValueExpression;
-import org.h2.expression.Variable;
-import org.h2.expression.Wildcard;
 import org.h2.index.Index;
 import org.h2.message.DbException;
 import org.h2.result.SortOrder;
@@ -211,40 +186,40 @@ public class Parser {
         }
     };
 
-    private final Database database;
-    private final Session session;
+    protected final Database database;
+    protected final Session session;
     /**
      * @see org.h2.engine.DbSettings#databaseToUpper
      */
-    private final boolean identifiersToUpper;
+    protected final boolean identifiersToUpper;
 
     /** indicates character-type for each char in sqlCommand */
-    private int[] characterTypes;
-    private int currentTokenType;
-    private String currentToken;
-    private boolean currentTokenQuoted;
-    private Value currentValue;
-    private String originalSQL;
+    protected int[] characterTypes;
+    protected int currentTokenType;
+    protected String currentToken;
+    protected boolean currentTokenQuoted;
+    protected Value currentValue;
+    protected String originalSQL;
     /** copy of originalSQL, with comments blanked out */
-    private String sqlCommand;
+    protected String sqlCommand;
     /** cached array if chars from sqlCommand */
-    private char[] sqlCommandChars;
+    protected char[] sqlCommandChars;
     /** index into sqlCommand of previous token */
-    private int lastParseIndex;
+    protected int lastParseIndex;
     /** index into sqlCommand of current token */
-    private int parseIndex;
-    private CreateView createView;
-    private Prepared currentPrepared;
-    private Select currentSelect;
-    private ArrayList<Parameter> parameters;
-    private String schemaName;
-    private ArrayList<String> expectedList;
-    private boolean rightsChecked;
-    private boolean recompileAlways;
-    private boolean literalsChecked;
-    private ArrayList<Parameter> indexedParameterList;
-    private int orderInFrom;
-    private ArrayList<Parameter> suppliedParameterList;
+    protected int parseIndex;
+    protected CreateView createView;
+    protected Prepared currentPrepared;
+    protected Select currentSelect;
+    protected ArrayList<Parameter> parameters;
+    protected String schemaName;
+    protected ArrayList<String> expectedList;
+    protected boolean rightsChecked;
+    protected boolean recompileAlways;
+    protected boolean literalsChecked;
+    protected ArrayList<Parameter> indexedParameterList;
+    protected int orderInFrom;
+    protected ArrayList<Parameter> suppliedParameterList;
 
     public Parser(Session session) {
         this.database = session.getDatabase();
@@ -300,7 +275,7 @@ public class Parser {
      * @param sql the SQL statement to parse
      * @return the prepared object
      */
-    Prepared parse(String sql) {
+    protected Prepared parse(String sql) {
         Prepared p;
         try {
             // first, try the fast variant
@@ -335,7 +310,7 @@ public class Parser {
         return parsePrepared();
     }
 
-    private Prepared parsePrepared() {
+    protected Prepared parsePrepared() {
         int start = lastParseIndex;
         Prepared c = null;
         String token = currentToken;
@@ -543,7 +518,7 @@ public class Parser {
         return c;
     }
 
-    private DbException getSyntaxError() {
+    protected DbException getSyntaxError() {
         if (expectedList == null || expectedList.isEmpty()) {
             return DbException.getSyntaxError(sqlCommand, parseIndex);
         }
@@ -703,7 +678,7 @@ public class Parser {
         return schema;
     }
 
-    private Schema getSchema() {
+    protected Schema getSchema() {
         return getSchema(schemaName);
     }
     /*
@@ -771,7 +746,7 @@ public class Parser {
         return filter.getTable().getColumn(columnName);
     }
 
-    private Update parseUpdate() {
+    protected Update parseUpdate() {
         Update command = new Update(session);
         currentPrepared = command;
         int start = lastParseIndex;
@@ -850,7 +825,7 @@ public class Parser {
                 currentSelect, orderInFrom, null);
     }
 
-    private Delete parseDelete() {
+    protected Delete parseDelete() {
         Delete command = new Delete(session);
         Expression limit = null;
         if (readIf("TOP")) {
@@ -880,7 +855,7 @@ public class Parser {
         setSQL(command, "DELETE", start);
     }
 
-    private IndexColumn[] parseIndexColumnList() {
+    protected IndexColumn[] parseIndexColumnList() {
         ArrayList<IndexColumn> columns = New.arrayList();
         do {
             IndexColumn column = new IndexColumn();
@@ -949,6 +924,10 @@ public class Parser {
         }
         read(")");
         return false;
+    }
+
+    protected boolean readIfMore() {
+        return readIfMore(false);
     }
 
     private Prepared parseHelp() {
@@ -1045,7 +1024,7 @@ public class Parser {
         }
     }
 
-    private static Prepared prepare(Session s, String sql,
+    protected static Prepared prepare(Session s, String sql,
             ArrayList<Value> paramValues) {
         Prepared prep = s.prepare(sql);
         ArrayList<Parameter> params = prep.getParameters();
@@ -1071,7 +1050,7 @@ public class Parser {
     }
 
 
-    private Prepared parseMerge() {
+    protected Prepared parseMerge() {
         Merge command = new Merge(session);
         currentPrepared = command;
         int start = lastParseIndex;
@@ -1210,7 +1189,7 @@ public class Parser {
         return command;
     }
 
-    private Insert parseInsert() {
+    protected Insert parseInsert() {
         Insert command = new Insert(session);
         currentPrepared = command;
         if (database.getMode().onDuplicateKeyUpdate && readIf("IGNORE")) {
@@ -1514,7 +1493,7 @@ public class Parser {
         return command;
     }
 
-    private boolean readIfExists(boolean ifExists) {
+    protected boolean readIfExists(boolean ifExists) {
         if (readIf("IF")) {
             read("EXISTS");
             ifExists = true;
@@ -1592,7 +1571,7 @@ public class Parser {
         return command;
     }
 
-    private Prepared parseDrop() {
+    protected Prepared parseDrop() {
         if (readIf("TABLE")) {
             boolean ifExists = readIfExists(false);
             String tableName = readIdentifierWithSchema();
@@ -1913,7 +1892,7 @@ public class Parser {
         return command;
     }
 
-    private Query parseSelect() {
+    protected Query parseSelect() {
         Query command = null;
         int paramIndex = parameters.size();
         command = parseSelectUnion();
@@ -2322,7 +2301,7 @@ public class Parser {
         return new RangeTable(main, one, one, noColumns);
     }
 
-    private void setSQL(Prepared command, String start, int startIndex) {
+    protected void setSQL(Prepared command, String start, int startIndex) {
         String sql = originalSQL.substring(startIndex, lastParseIndex).trim();
         if (start != null) {
             sql = start + " " + sql;
@@ -2330,7 +2309,7 @@ public class Parser {
         command.setSQL(sql);
     }
 
-    private Expression readExpression() {
+    protected Expression readExpression() {
         Expression r = readAnd();
         while (readIf("OR")) {
             r = new ConditionAndOr(ConditionAndOr.OR, r, readAnd());
@@ -3053,15 +3032,28 @@ public class Parser {
         return p;
     }
 
-    private Expression readTerm() {
+    protected Expression readTerm() {
+        if (readIf("INTERVAL")) {
+            final IntervalExpression intervalExpression = new IntervalExpression();
+            intervalExpression.setExpression(readExpression());
+            intervalExpression.setUnit(readUniqueIdentifier());
+            return intervalExpression;
+        }
         Expression r;
         switch (currentTokenType) {
         case AT:
             read();
-            r = new Variable(session, readAliasIdentifier());
+            if (currentTokenType == AT) {
+                //global
+                read();
+            }
+            if (readIf("SESSION")) {
+                readIf(".");
+            }
+            r = new Variable(session, readUniqueIdentifier());
             if (readIf(":=")) {
                 Expression value = readExpression();
-                Function function = Function.getFunction(database, "SET");
+                Function function = Function.getFunction(session.getDatabase(), "SET");
                 function.setParameter(0, r);
                 function.setParameter(1, value);
                 r = function;
@@ -3413,7 +3405,7 @@ public class Parser {
         return i;
     }
 
-    private long readLong() {
+    protected long readLong() {
         boolean minus = false;
         if (currentTokenType == MINUS) {
             minus = true;
@@ -3448,7 +3440,7 @@ public class Parser {
         }
     }
 
-    private String readString() {
+    protected String readString() {
         Expression expr = readExpression().optimize(session);
         if (!(expr instanceof ValueExpression)) {
             throw DbException.getSyntaxError(sqlCommand, parseIndex, "string");
@@ -3490,15 +3482,15 @@ public class Parser {
         return s;
     }
 
-    private String readIdentifierWithSchema() {
+    protected String readIdentifierWithSchema() {
         return readIdentifierWithSchema(session.getCurrentSchemaName());
     }
 
-    private String readAliasIdentifier() {
+    protected String readAliasIdentifier() {
         return readColumnIdentifier();
     }
 
-    private String readUniqueIdentifier() {
+    protected String readUniqueIdentifier() {
         return readColumnIdentifier();
     }
 
@@ -3512,7 +3504,7 @@ public class Parser {
         return s;
     }
 
-    private void read(String expected) {
+    protected void read(String expected) {
         if (currentTokenQuoted || !equalsToken(expected, currentToken)) {
             addExpected(expected);
             throw getSyntaxError();
@@ -3520,7 +3512,7 @@ public class Parser {
         read();
     }
 
-    private boolean readIf(String token) {
+    protected boolean readIf(String token) {
         if (!currentTokenQuoted && equalsToken(token, currentToken)) {
             read();
             return true;
@@ -3549,7 +3541,7 @@ public class Parser {
         return true;
     }
 
-    private boolean isToken(String token) {
+    protected boolean isToken(String token) {
         boolean result = equalsToken(token, currentToken) &&
                 !currentTokenQuoted;
         if (result) {
@@ -3584,7 +3576,7 @@ public class Parser {
         }
     }
 
-    private void read() {
+    protected void read() {
         currentTokenQuoted = false;
         if (expectedList != null) {
             expectedList.clear();
@@ -3861,7 +3853,7 @@ public class Parser {
         return session;
     }
 
-    private void initialize(String sql) {
+    protected void initialize(String sql) {
         if (sql == null) {
             sql = "";
         }
@@ -4312,7 +4304,7 @@ public class Parser {
         column.setAutoIncrement(true, start, increment);
     }
 
-    private String readCommentIf() {
+    protected String readCommentIf() {
         if (readIf("COMMENT")) {
             readIf("IS");
             return readString();
@@ -4547,7 +4539,7 @@ public class Parser {
         return column;
     }
 
-    private Prepared parseCreate() {
+    protected Prepared parseCreate() {
         boolean orReplace = false;
         if (readIf("OR")) {
             read("REPLACE");
@@ -4726,7 +4718,7 @@ public class Parser {
         }
     }
 
-    private GrantRevoke parseGrantRevoke(int operationType) {
+    protected GrantRevoke parseGrantRevoke(int operationType) {
         GrantRevoke command = new GrantRevoke(session);
         command.setOperationType(operationType);
         boolean tableClauseExpected = addRoleOrRight(command);
@@ -4862,7 +4854,7 @@ public class Parser {
         return command;
     }
 
-    private CreateSchema parseCreateSchema() {
+    protected CreateSchema parseCreateSchema() {
         CreateSchema command = new CreateSchema(session);
         command.setIfNotExists(readIfNotExists());
         command.setSchemaName(readUniqueIdentifier());
@@ -4937,7 +4929,7 @@ public class Parser {
         return command;
     }
 
-    private boolean readIfNotExists() {
+    protected boolean readIfNotExists() {
         if (readIf("IF")) {
             read("NOT");
             read("EXISTS");
@@ -5368,7 +5360,7 @@ public class Parser {
         return command;
     }
 
-    private Prepared parseAlter() {
+    protected Prepared parseAlter() {
         if (readIf("TABLE")) {
             return parseAlterTable();
         } else if (readIf("USER")) {
@@ -5532,13 +5524,13 @@ public class Parser {
         throw getSyntaxError();
     }
 
-    private void readIfEqualOrTo() {
+    protected void readIfEqualOrTo() {
         if (!readIf("=")) {
             readIf("TO");
         }
     }
 
-    private Prepared parseSet() {
+    protected Prepared parseSet() {
         if (readIf("@")) {
             Set command = new Set(session, SetTypes.VARIABLE);
             command.setString(readAliasIdentifier());
@@ -5893,7 +5885,7 @@ public class Parser {
         return command;
     }
 
-    private Table readTableOrView() {
+    protected Table readTableOrView() {
         return readTableOrView(readIdentifierWithSchema(null));
     }
 

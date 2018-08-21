@@ -18,7 +18,7 @@ class AggregateDataCountAll extends AggregateData {
     private long count;
 
     @Override
-    void add(Database database, int dataType, boolean distinct, Value v) {
+    public void add(Database database, int dataType, boolean distinct, Value v) {
         if (distinct) {
             throw DbException.throwInternalError();
         }
@@ -26,7 +26,7 @@ class AggregateDataCountAll extends AggregateData {
     }
 
     @Override
-    Value getValue(Database database, int dataType, boolean distinct) {
+    public Value getValue(Database database, int dataType, boolean distinct) {
         if (distinct) {
             throw DbException.throwInternalError();
         }

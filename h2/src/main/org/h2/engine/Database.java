@@ -280,8 +280,52 @@ public class Database implements DataHandler {
         openDatabase(traceLevelFile, traceLevelSystemOut, closeAtVmShutdown);
     }
 
+    public Set<Session> getUserSessions() {
+        return userSessions;
+    }
+
+    public BitField getObjectIds() {
+        return objectIds;
+    }
+
+    public int getNextSessionId() {
+        return nextSessionId;
+    }
+
+    public void setNextSessionId(int nextSessionId) {
+        this.nextSessionId = nextSessionId;
+    }
+
+    public User getSystemUser() {
+        return systemUser;
+    }
+
+    public void setSystemUser(User systemUser) {
+        this.systemUser = systemUser;
+    }
+
+    public void setSystemSession(Session systemSession) {
+        this.systemSession = systemSession;
+    }
+
+    public Table getMeta() {
+        return meta;
+    }
+
+    public void setMeta(Table meta) {
+        this.meta = meta;
+    }
+
+    public DatabaseCloser getDelayedCloser() {
+        return delayedCloser;
+    }
+
+    public void setDelayedCloser(DatabaseCloser delayedCloser) {
+        this.delayedCloser = delayedCloser;
+    }
+
     private void openDatabase(int traceLevelFile, int traceLevelSystemOut,
-            boolean closeAtVmShutdown) {
+                              boolean closeAtVmShutdown) {
         try {
             open(traceLevelFile, traceLevelSystemOut);
             if (closeAtVmShutdown) {
@@ -1183,7 +1227,7 @@ public class Database implements DataHandler {
      * @return the session, or null if the database is currently closing
      * @throws DbException if the database is in exclusive mode
      */
-    synchronized Session createSession(User user) {
+    public synchronized Session createSession(User user) {
         if (closing) {
             return null;
         }
@@ -1255,7 +1299,7 @@ public class Database implements DataHandler {
      * @param fromShutdownHook true if this method is called from the shutdown
      *            hook
      */
-    void close(boolean fromShutdownHook) {
+    public void close(boolean fromShutdownHook) {
         try {
             synchronized (this) {
                 if (closing) {

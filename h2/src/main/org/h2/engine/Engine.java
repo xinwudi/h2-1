@@ -41,6 +41,14 @@ public class Engine implements SessionFactory {
         }
     }
 
+    public static Map<String, Database> getDATABASES() {
+        return DATABASES;
+    }
+
+    public static void setDATABASES(ConnectionInfo info,Database databases) {
+        DATABASES.put(info.getName(),databases);
+    }
+
     public static Engine getInstance() {
         return INSTANCE;
     }

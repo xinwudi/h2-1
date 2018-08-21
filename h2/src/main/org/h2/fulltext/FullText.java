@@ -810,18 +810,7 @@ public class FullText {
         if (data.indexOf('\'') < 0) {
             return "'" + data + "'";
         }
-        int len = data.length();
-        StringBuilder buff = new StringBuilder(len + 2);
-        buff.append('\'');
-        for (int i = 0; i < len; i++) {
-            char ch = data.charAt(i);
-            if (ch == '\'') {
-                buff.append(ch);
-            }
-            buff.append(ch);
-        }
-        buff.append('\'');
-        return buff.toString();
+        return StringUtils.quoteStringSQL1(data);
     }
 
     private static void setIgnoreList(FullTextSettings setting,

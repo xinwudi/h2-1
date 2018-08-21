@@ -11,11 +11,10 @@ import org.h2.message.DbException;
 import org.h2.table.ColumnResolver;
 import org.h2.table.TableFilter;
 import org.h2.util.MathUtils;
-import org.h2.value.DataType;
-import org.h2.value.Value;
-import org.h2.value.ValueInt;
-import org.h2.value.ValueNull;
-import org.h2.value.ValueString;
+import org.h2.value.*;
+
+import static org.h2.expression.Operation.OpType.CONCAT;
+import static org.h2.expression.Operation.OpType.PLUS;
 
 /**
  * A mathematical expression, or string concatenation.
@@ -182,147 +181,79 @@ public class Operation extends Expression {
     public Expression optimize(Session session) {
         left = left.optimize(session);
         switch (opType) {
-        case NEGATE:
-            dataType = left.getType();
-            if (dataType == Value.UNKNOWN) {
-                dataType = Value.DECIMAL;
-            }
-            break;
-        case CONCAT:
-            right = right.optimize(session);
-            dataType = Value.STRING;
-            if (left.isConstant() && right.isConstant()) {
-                return ValueExpression.get(getValue(session));
-            }
-            break;
-        case PLUS:
-        case MINUS:
-        case MULTIPLY:
-        case DIVIDE:
-        case MODULUS:
-            right = right.optimize(session);
-            int l = left.getType();
-            int r = right.getType();
-            if ((l == Value.NULL && r == Value.NULL) ||
-                    (l == Value.UNKNOWN && r == Value.UNKNOWN)) {
-                // (? + ?) - use decimal by default (the most safe data type) or
-                // string when text concatenation with + is enabled
-                if (opType == OpType.PLUS && session.getDatabase().
-                        getMode().allowPlusForStringConcat) {
-                    dataType = Value.STRING;
-                    opType = OpType.CONCAT;
-                } else {
+            case NEGATE:
+                dataType = left.getType();
+                if (dataType == Value.UNKNOWN) {
                     dataType = Value.DECIMAL;
                 }
-            } else if (l == Value.DATE || l == Value.TIMESTAMP ||
-                    l == Value.TIME || r == Value.DATE ||
-                    r == Value.TIMESTAMP || r == Value.TIME) {
-                if (opType == OpType.PLUS) {
-                    if (r != Value.getHigherOrder(l, r)) {
-                        // order left and right: INT < TIME < DATE < TIMESTAMP
+                break;
+            case CONCAT:
+                right = right.optimize(session);
+                dataType = Value.STRING;
+                if (left.isConstant() && right.isConstant()) {
+                    return ValueExpression.get(getValue(session));
+                }
+                break;
+            case PLUS:
+            case MINUS:
+            case MULTIPLY:
+            case DIVIDE:
+            case MODULUS:
+                right = right.optimize(session);
+                int l = left.getType();
+                int r = right.getType();
+                if ((l == Value.NULL && r == Value.NULL) ||
+                        (l == Value.UNKNOWN && r == Value.UNKNOWN)) {
+                    // (? + ?) - use decimal by default (the most safe data type) or
+                    // string when text concatenation with + is enabled
+                    if (opType == PLUS && session.getDatabase().
+                            getMode().allowPlusForStringConcat) {
+                        dataType = Value.STRING;
+                        opType = CONCAT;
+                    } else {
+                        dataType = Value.DECIMAL;
+                    }
+                } else if (l == Value.DATE || l == Value.TIMESTAMP ||
+                        l == Value.TIME || r == Value.DATE ||
+                        r == Value.TIMESTAMP || r == Value.TIME) {
+                    /**
+                     * 针对mysql 修改, 日期类型的加减运算不转换为函数
+                     */
+                    if (l != Value.getHigherOrder(l, r)) {
                         swap();
-                        int t = l;
-                        l = r;
-                        r = t;
                     }
-                    if (l == Value.INT) {
-                        // Oracle date add
-                        Function f = Function.getFunction(session.getDatabase(), "DATEADD");
-                        f.setParameter(0, ValueExpression.get(ValueString.get("DAY")));
-                        f.setParameter(1, left);
-                        f.setParameter(2, right);
-                        f.doneWithParameters();
-                        return f.optimize(session);
-                    } else if (l == Value.DECIMAL || l == Value.FLOAT || l == Value.DOUBLE) {
-                        // Oracle date add
-                        Function f = Function.getFunction(session.getDatabase(), "DATEADD");
-                        f.setParameter(0, ValueExpression.get(ValueString.get("SECOND")));
-                        left = new Operation(OpType.MULTIPLY, ValueExpression.get(ValueInt
-                                .get(60 * 60 * 24)), left);
-                        f.setParameter(1, left);
-                        f.setParameter(2, right);
-                        f.doneWithParameters();
-                        return f.optimize(session);
-                    } else if (l == Value.TIME && r == Value.TIME) {
-                        dataType = Value.TIME;
-                        return this;
-                    } else if (l == Value.TIME) {
-                        dataType = Value.TIMESTAMP;
-                        return this;
+                    convertRight = false;
+                    switch (r) {
+                        case ValueInterval.TYPE:
+                            dataType = left.getType();
+                            break;
+                        case Value.INT:
+                        case Value.LONG:
+                        case Value.SHORT:
+                            convertRight = true;
+                            dataType = Value.LONG;
+                            break;
+                        case Value.DECIMAL:
+                        case Value.DOUBLE:
+                        case Value.FLOAT:
+                            convertRight = true;
+                            dataType = Value.DOUBLE;
+                            break;
+                        default:
+                            dataType = left.getType();
+                            break;
                     }
-                } else if (opType == OpType.MINUS) {
-                    if ((l == Value.DATE || l == Value.TIMESTAMP) && r == Value.INT) {
-                        // Oracle date subtract
-                        Function f = Function.getFunction(session.getDatabase(), "DATEADD");
-                        f.setParameter(0, ValueExpression.get(ValueString.get("DAY")));
-                        right = new Operation(OpType.NEGATE, right, null);
-                        right = right.optimize(session);
-                        f.setParameter(1, right);
-                        f.setParameter(2, left);
-                        f.doneWithParameters();
-                        return f.optimize(session);
-                    } else if ((l == Value.DATE || l == Value.TIMESTAMP) &&
-                            (r == Value.DECIMAL || r == Value.FLOAT || r == Value.DOUBLE)) {
-                        // Oracle date subtract
-                        Function f = Function.getFunction(session.getDatabase(), "DATEADD");
-                        f.setParameter(0, ValueExpression.get(ValueString.get("SECOND")));
-                        right = new Operation(OpType.MULTIPLY, ValueExpression.get(ValueInt
-                                .get(60 * 60 * 24)), right);
-                        right = new Operation(OpType.NEGATE, right, null);
-                        right = right.optimize(session);
-                        f.setParameter(1, right);
-                        f.setParameter(2, left);
-                        f.doneWithParameters();
-                        return f.optimize(session);
-                    } else if (l == Value.DATE || l == Value.TIMESTAMP) {
-                        if (r == Value.TIME) {
-                            dataType = Value.TIMESTAMP;
-                            return this;
-                        } else if (r == Value.DATE || r == Value.TIMESTAMP) {
-                            // Oracle date subtract
-                            Function f = Function.getFunction(session.getDatabase(), "DATEDIFF");
-                            f.setParameter(0, ValueExpression.get(ValueString.get("DAY")));
-                            f.setParameter(1, right);
-                            f.setParameter(2, left);
-                            f.doneWithParameters();
-                            return f.optimize(session);
-                        }
-                    } else if (l == Value.TIME && r == Value.TIME) {
-                        dataType = Value.TIME;
-                        return this;
-                    }
-                } else if (opType == OpType.MULTIPLY) {
-                    if (l == Value.TIME) {
-                        dataType = Value.TIME;
-                        convertRight = false;
-                        return this;
-                    } else if (r == Value.TIME) {
-                        swap();
-                        dataType = Value.TIME;
-                        convertRight = false;
-                        return this;
-                    }
-                } else if (opType == OpType.DIVIDE) {
-                    if (l == Value.TIME) {
-                        dataType = Value.TIME;
-                        convertRight = false;
-                        return this;
+                    break;
+                } else {
+                    dataType = Value.getHigherOrder(l, r);
+                    if (DataType.isStringType(dataType) &&
+                            session.getDatabase().getMode().allowPlusForStringConcat) {
+                        opType = CONCAT;
                     }
                 }
-                throw DbException.getUnsupportedException(
-                        DataType.getDataType(l).name + " " +
-                        getOperationToken() + " " +
-                        DataType.getDataType(r).name);
-            } else {
-                dataType = Value.getHigherOrder(l, r);
-                if (DataType.isStringType(dataType) &&
-                        session.getDatabase().getMode().allowPlusForStringConcat) {
-                    opType = OpType.CONCAT;
-                }
-            }
-            break;
-        default:
-            DbException.throwInternalError("type=" + opType);
+                break;
+            default:
+                throw DbException.throwInternalError("type=" + opType);
         }
         if (left.isConstant() && (right == null || right.isConstant())) {
             return ValueExpression.get(getValue(session));

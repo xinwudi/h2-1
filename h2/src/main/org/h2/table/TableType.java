@@ -33,7 +33,9 @@ public enum TableType {
     /**
      * The table type name for external table engines.
      */
-    EXTERNAL_TABLE_ENGINE;
+    EXTERNAL_TABLE_ENGINE,
+
+    RANGE_TABLE;
 
     @Override
     public String toString() {
@@ -41,6 +43,8 @@ public enum TableType {
             return "EXTERNAL";
         } else if (this == SYSTEM_TABLE) {
             return "SYSTEM TABLE";
+        } else if (this == RANGE_TABLE) {
+            return "Range Table";
         } else if (this == TABLE_LINK) {
             return "TABLE LINK";
         } else {

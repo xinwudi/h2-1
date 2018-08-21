@@ -123,8 +123,8 @@ public class ConditionAndOr extends Condition {
         }
     }
 
-    @Override
-    public Expression optimize(Session session) {
+
+    public Expression optimizeImpl(Session session) {
         // NULL handling: see wikipedia,
         // http://www-cs-students.stanford.edu/~wlam/compsci/sqlnulls
         left = left.optimize(session);
@@ -243,6 +243,93 @@ public class ConditionAndOr extends Condition {
             DbException.throwInternalError("type=" + andOrType);
         }
         return this;
+    }
+
+    @Override
+    public Expression optimize(Session session) {
+        return optimize(session,optimizeImpl(session));
+    }
+
+    /**
+     * 对And条件做递归计算逻辑优化。
+     * 如(A=B and B=C) and (C=1 and D=2) ==> (A=1 and B=1) and ((A=B and B=C) and (C=1 and D=2))
+     * @param session
+     * @param expression
+     * @return
+     */
+    public Expression optimize(Session session, Expression expression) {
+        if(! (expression instanceof ConditionAndOr)){
+            return expression;
+        }
+        ConditionAndOr conditionAndOr = (ConditionAndOr) expression;
+        Expression left = conditionAndOr.getExpression(true);
+        Expression right = conditionAndOr.getExpression(false);
+        if (session.getDatabase().getSettings().optimizeTwoEquals &&
+                andOrType == AND) {
+            // try to add conditions (A=B AND B=1: add A=1)
+            Expression added = tryAdditional(left, session, right);
+            if (added != null) {
+                added = added.optimize(session);
+                return new ConditionAndOr(AND, conditionAndOr, added);
+            }
+        }
+        return conditionAndOr;
+    }
+    private Expression tryAdditional(Expression left, Session session, Expression right){
+        // try to add conditions (A=B AND B=1: add A=1)
+        if(right instanceof Comparison){
+            Expression t = left;
+            left = right;
+            right = t;
+        }
+        if (left instanceof Comparison && right instanceof ConditionAndOr) {
+            Comparison compLeft = (Comparison) left;
+            return tryAdditional(compLeft, session, (ConditionAndOr) right);
+        }
+        if(left instanceof ConditionAndOr && right instanceof ConditionAndOr){
+            if(andOrType == OR){
+                return null;
+            }
+            Expression ll = ((ConditionAndOr) left).getExpression(true);
+            Expression lladded = tryAdditional(ll, session, right);
+            Expression lr = ((ConditionAndOr) left).getExpression(false);
+            Expression lradded = tryAdditional(lr, session, right);
+            if(lladded == null){
+                return lradded;
+            }
+            if(lradded == null){
+                return  lladded;
+            }
+            return new ConditionAndOr(AND, lladded, lradded);
+        }
+        return null;
+    }
+
+
+    private Expression tryAdditional(Comparison compLeft, Session session, ConditionAndOr conditionAndOr) {
+        if(andOrType == OR){
+            return null;
+        }
+        Expression left = conditionAndOr.getExpression(true);
+        Expression added = tryAdditional(compLeft, session, left);
+        if(added != null){
+            return added;
+        }
+        Expression right = conditionAndOr.getExpression(false);
+        return tryAdditional(compLeft, session, right);
+    }
+
+    private Expression tryAdditional(Comparison compLeft, Session session, Expression other) {
+        if(other instanceof Comparison){
+            return tryAdditional(compLeft, session, (Comparison) other);
+        }else if(other instanceof ConditionAndOr){
+            return tryAdditional(compLeft, session, (ConditionAndOr) other);
+        }
+        return null;
+    }
+
+    private Expression tryAdditional(Comparison compLeft, Session session, Comparison other){
+        return compLeft.getAdditional(session, other, true);
     }
 
     @Override

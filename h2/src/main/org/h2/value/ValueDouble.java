@@ -5,6 +5,7 @@
  */
 package org.h2.value;
 
+import java.math.BigDecimal;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
@@ -123,12 +124,26 @@ public class ValueDouble extends Value {
 
     @Override
     public long getPrecision() {
-        return PRECISION;
+        final BigDecimal bigDecimal = this.getBigDecimal();
+        return bigDecimal.precision();
     }
 
     @Override
     public int getScale() {
-        return 0;
+        final BigDecimal bigDecimal = this.getBigDecimal();
+        return bigDecimal.scale();
+    }
+
+    @Override
+    public Value convertPrecision(long precision, boolean force) {
+        final Value decimal = this.convertTo(Value.DECIMAL);
+        return decimal.convertPrecision(precision, force).convertTo(this.getType());
+    }
+
+    @Override
+    public Value convertScale(boolean onlyToSmallerScale, int targetScale) {
+        final Value decimal = this.convertTo(Value.DECIMAL);
+        return decimal.convertScale(onlyToSmallerScale, targetScale).convertTo(this.getType());
     }
 
     @Override

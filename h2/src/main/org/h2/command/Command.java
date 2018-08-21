@@ -46,6 +46,10 @@ public abstract class Command implements CommandInterface {
 
     private boolean canReuse;
 
+    public Session getSession() {
+        return session;
+    }
+
     Command(Parser parser, String sql) {
         this.session = parser.getSession();
         this.sql = sql;
@@ -236,6 +240,10 @@ public abstract class Command implements CommandInterface {
                 }
             }
         }
+    }
+
+    public ResultWithGeneratedKeys executeUpdate() {
+        return executeUpdate(false);
     }
 
     @Override

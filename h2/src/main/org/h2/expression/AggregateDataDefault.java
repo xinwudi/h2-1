@@ -34,7 +34,7 @@ class AggregateDataDefault extends AggregateData {
     }
 
     @Override
-    void add(Database database, int dataType, boolean distinct, Value v) {
+    public void add(Database database, int dataType, boolean distinct, Value v) {
         if (v == ValueNull.INSTANCE) {
             return;
         }
@@ -127,7 +127,7 @@ class AggregateDataDefault extends AggregateData {
     }
 
     @Override
-    Value getValue(Database database, int dataType, boolean distinct) {
+    public Value getValue(Database database, int dataType, boolean distinct) {
         if (distinct) {
             count = 0;
             groupDistinct(database, dataType);

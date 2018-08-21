@@ -69,6 +69,10 @@ public class DataType {
     private static final HashMap<String, DataType> TYPES_BY_NAME = new HashMap<>(96);
     private static final HashMap<Integer, DataType> TYPES_BY_VALUE_TYPE = new HashMap<>(48);
 
+    public static HashMap<Integer, DataType> getTypesByValueType() {
+        return TYPES_BY_VALUE_TYPE;
+    }
+
     /**
      * The value type of this data type.
      */
@@ -227,10 +231,17 @@ public class DataType {
         add(Value.SHORT, Types.SMALLINT,
                 createDecimal(ValueShort.PRECISION, ValueShort.PRECISION, 0,
                         ValueShort.DISPLAY_SIZE, false, false),
-                new String[]{"SMALLINT", "YEAR", "INT2"},
+                new String[]{"SMALLINT", "INT2"},
+                //"YEAR", Override
                 // in many cases the value is in the cache
                 20
         );
+        getTypesByValueType().remove(ValueYear.TYPE);
+        add(ValueYear.TYPE, Types.SMALLINT,
+                createYear(),
+                new String[]{"YEAR"},
+                // in many cases the value is in the cache
+                20);
         add(Value.INT, Types.INTEGER,
                 createDecimal(ValueInt.PRECISION, ValueInt.PRECISION, 0,
                         ValueInt.DISPLAY_SIZE, false, false),
@@ -265,19 +276,19 @@ public class DataType {
         }
         add(Value.FLOAT, Types.REAL,
                 createDecimal(ValueFloat.PRECISION, ValueFloat.PRECISION,
-                        0, ValueFloat.DISPLAY_SIZE, false, false),
+                        ValueFloat.PRECISION, ValueFloat.DISPLAY_SIZE, true, false),
                 new String[] {"REAL", "FLOAT4"},
                 24
         );
         add(Value.DOUBLE, Types.DOUBLE,
                 createDecimal(ValueDouble.PRECISION, ValueDouble.PRECISION,
-                        0, ValueDouble.DISPLAY_SIZE, false, false),
+                        ValueDouble.PRECISION, ValueDouble.DISPLAY_SIZE, true, false),
                 new String[] { "DOUBLE", "DOUBLE PRECISION" },
                 24
         );
         add(Value.DOUBLE, Types.FLOAT,
                 createDecimal(ValueDouble.PRECISION, ValueDouble.PRECISION,
-                        0, ValueDouble.DISPLAY_SIZE, false, false),
+                        ValueDouble.PRECISION, ValueDouble.DISPLAY_SIZE, true, false),
                 new String[] {"FLOAT", "FLOAT8" },
                 24
         );
@@ -399,6 +410,16 @@ public class DataType {
         );
     }
 
+    private static DataType createYear() {
+        DataType dataType = new DataType();
+        dataType.defaultPrecision = 4;
+        dataType.defaultDisplaySize = 4;
+        dataType.maxPrecision = 4;
+        dataType.supportsScale = false;
+        dataType.autoIncrement = true;
+        return dataType;
+    }
+
     private static void addNumeric() {
         add(Value.DECIMAL, Types.NUMERIC,
                 createDecimal(Integer.MAX_VALUE,
@@ -410,7 +431,7 @@ public class DataType {
         );
     }
 
-    private static void add(int type, int sqlType,
+    public static void add(int type, int sqlType,
             DataType dataType, String[] names, int memory) {
         for (int i = 0; i < names.length; i++) {
             DataType dt = new DataType();
@@ -1204,6 +1225,14 @@ public class DataType {
             if (result == null && JdbcUtils.customDataTypesHandler != null) {
                 result = JdbcUtils.customDataTypesHandler.getDataTypeByName(s);
             }
+        }
+        return result;
+    }
+
+    public static DataType getTypeByName(String s) {
+        DataType result = TYPES_BY_NAME.get(s);
+        if (result == null && JdbcUtils.customDataTypesHandler != null) {
+            result = JdbcUtils.customDataTypesHandler.getDataTypeByName(s);
         }
         return result;
     }

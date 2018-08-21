@@ -11,6 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Locale;
+import java.util.Vector;
 import java.util.concurrent.TimeUnit;
 
 import org.h2.api.ErrorCode;
@@ -147,6 +148,24 @@ public class StringUtils {
                 // need to start from the beginning because maybe there was a \
                 // that was not quoted
                 return "STRINGDECODE(" + quoteStringSQL(javaEncode(s)) + ")";
+            }
+            buff.append(c);
+        }
+        buff.append('\'');
+        return buff.toString();
+    }
+
+    public static String quoteStringSQL1(String s) {
+        if (s == null) {
+            return "NULL";
+        }
+        int length = s.length();
+        StringBuilder buff = new StringBuilder(length + 2);
+        buff.append('\'');
+        for (int i = 0; i < length; i++) {
+            char c = s.charAt(i);
+            if (c == '\'') {
+                buff.append(c);
             }
             buff.append(c);
         }
@@ -479,6 +498,26 @@ public class StringUtils {
         String e = buff.toString();
         list.add(trim ? e.trim() : e);
         return list.toArray(new String[0]);
+    }
+
+    /**
+     * Splits up a string where elements are separated by a specific
+     * character and return all elements.
+     * @param data the string to split up.
+     * @param ch the separator character.
+     * @return the list of elements.
+     */
+    public static Vector<String> split(String data, int ch) {
+        Vector<String> elems = new Vector<String>();
+        int pos = -1;
+        int i = 0;
+        while ((pos = data.indexOf(ch, i)) != -1) {
+            String elem = data.substring(i, pos);
+            elems.addElement(elem);
+            i = pos + 1;
+        }
+        elems.addElement(data.substring(i));
+        return elems;
     }
 
     /**

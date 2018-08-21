@@ -20,7 +20,7 @@ class AggregateDataSelectivity extends AggregateData {
     private double m2;
 
     @Override
-    void add(Database database, int dataType, boolean distinct, Value v) {
+    public void add(Database database, int dataType, boolean distinct, Value v) {
         count++;
         if (distinctHashes == null) {
             distinctHashes = new IntIntHashMap();
@@ -36,7 +36,7 @@ class AggregateDataSelectivity extends AggregateData {
     }
 
     @Override
-    Value getValue(Database database, int dataType, boolean distinct) {
+    public Value getValue(Database database, int dataType, boolean distinct) {
         if (distinct) {
             count = 0;
         }

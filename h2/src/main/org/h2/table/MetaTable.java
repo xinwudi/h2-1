@@ -624,6 +624,13 @@ public class MetaTable extends Table {
         }
     }
 
+    public MetaTable(Schema schema,int id,String name,Column[] cols){
+        super(schema, id, name, true, true);
+        setColumns(cols);
+        type = 0 - id + 1;
+        indexColumn = id;
+        metaIndex = new MetaIndex(this,IndexColumn.wrap(cols),false);
+    }
     private Column[] createColumns(String... names) {
         Column[] cols = new Column[names.length];
         for (int i = 0; i < names.length; i++) {

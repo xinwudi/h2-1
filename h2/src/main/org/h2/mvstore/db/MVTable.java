@@ -876,7 +876,7 @@ public class MVTable extends TableBase {
      *
      * @return the transaction
      */
-    Transaction getTransactionBegin() {
+    public Transaction getTransactionBegin() {
         // TODO need to commit/rollback the transaction
         return transactionStore.begin();
     }

@@ -146,6 +146,11 @@ public class TableFilter implements ColumnResolver {
         this.indexHints = indexHints;
     }
 
+    public TableFilter(Session session, Table table, String alias,
+                       boolean rightsChecked, Select select, int orderInFrom) {
+        this(session,table,alias,rightsChecked,select,orderInFrom,null);
+    }
+
     /**
      * Get the order number (index) of this table filter in the "from" clause of
      * the query.

@@ -23,7 +23,7 @@ class AggregateDataHistogram extends AggregateData {
     private ValueHashMap<AggregateDataHistogram> distinctValues;
 
     @Override
-    void add(Database database, int dataType, boolean distinct, Value v) {
+    public void add(Database database, int dataType, boolean distinct, Value v) {
         if (distinctValues == null) {
             distinctValues = ValueHashMap.newInstance();
         }
@@ -40,7 +40,7 @@ class AggregateDataHistogram extends AggregateData {
     }
 
     @Override
-    Value getValue(Database database, int dataType, boolean distinct) {
+    public Value getValue(Database database, int dataType, boolean distinct) {
         if (distinct) {
             count = 0;
             groupDistinct(database, dataType);

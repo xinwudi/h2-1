@@ -5,8 +5,12 @@
  */
 package org.h2.table;
 
+import java.math.BigDecimal;
 import java.sql.ResultSetMetaData;
+import java.text.DecimalFormat;
 import java.util.Arrays;
+import java.util.Calendar;
+
 import org.h2.api.ErrorCode;
 import org.h2.command.Parser;
 import org.h2.engine.Constants;
@@ -24,18 +28,7 @@ import org.h2.schema.Sequence;
 import org.h2.util.DateTimeUtils;
 import org.h2.util.MathUtils;
 import org.h2.util.StringUtils;
-import org.h2.value.DataType;
-import org.h2.value.Value;
-import org.h2.value.ValueDate;
-import org.h2.value.ValueEnum;
-import org.h2.value.ValueInt;
-import org.h2.value.ValueLong;
-import org.h2.value.ValueNull;
-import org.h2.value.ValueString;
-import org.h2.value.ValueTime;
-import org.h2.value.ValueTimestamp;
-import org.h2.value.ValueTimestampTimeZone;
-import org.h2.value.ValueUuid;
+import org.h2.value.*;
 
 /**
  * This class represents a column in a table.
@@ -163,6 +156,67 @@ public class Column {
         return convert(v, null);
     }
 
+    public static Value convert(Column column, Value v) {
+        /**
+         * 对日期类型特殊处理
+         */
+        if (v.getType() == Value.TIMESTAMP || v.getType() == Value.DATE) {
+            if (DataType.isStringType(column.getType())) {
+                /**
+                 * 日期类型转换为字符类型
+                 */
+                String text = v.convertTo(column.getType()).getString();
+                String result = text.replaceAll("[-:]", "");
+                if (column.getPrecision() >= 14 && result.length() >= 14) {
+                    return ValueString.get(result.substring(0, 14));
+                }
+                return ValueString.get(result.substring(0, 8));
+            } else if (column.getType() == Value.SHORT && column.getOriginalSQL().equalsIgnoreCase("YEAR")) {
+                /**
+                 * 对year类型特殊处理
+                 */
+                final Calendar calendar = Calendar.getInstance();
+                calendar.setTime(v.getTimestamp());
+                final int year = calendar.get(Calendar.YEAR);
+                return ValueShort.get((short) year);
+            } else {
+                return v.convertTo(column.getType());
+            }
+        }
+        /**
+         * 尝试采用科学计数,减少占用
+         */
+        switch (v.getType()) {
+            case Value.DECIMAL:
+            case Value.DOUBLE:
+            case Value.FLOAT:
+            case Value.INT:
+            case Value.LONG:
+            case Value.SHORT:
+                final int type = column.getType();
+                if (DataType.isStringType(type)) {
+                    final long precision = column.getPrecision();
+                    final Value value = v.convertTo(type);
+                    if (value.getPrecision() > precision) {
+                        final BigDecimal bigDecimal = v.getBigDecimal().stripTrailingZeros();
+                        final String s = bigDecimal.toString();
+                        if (s.length() < precision) {
+                            return ValueString.get(s);
+                        } else if (s.equals(value.getString())) {
+                            final DecimalFormat decimalFormat = new DecimalFormat("#.###E0#");
+                            final String format = decimalFormat.format(bigDecimal);
+                            return ValueString.get(format);
+                        }
+                    }
+                    return value;
+                }
+                break;
+            default:
+                break;
+        }
+        return null;
+    }
+
     /**
      * Convert a value to this column's type using the given {@link Mode}.
      * <p>
@@ -173,6 +227,10 @@ public class Column {
      * @return the value
      */
     public Value convert(Value v, Mode mode) {
+        Value o = convert(this,v);
+        if (o != null){
+            return o;
+        }
         try {
             return v.convertTo(type, MathUtils.convertLongToInt(precision), mode, this, getEnumerators());
         } catch (DbException e) {

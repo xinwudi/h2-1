@@ -69,6 +69,11 @@ public class ValueDate extends Value {
      */
     public static ValueDate parse(String s) {
         try {
+            final ValueTimestamp timestamp = ValueTimestamp.parse(s);
+            ValueDate v = ValueDate.fromDateValue(timestamp.getDateValue());
+            if (v != null){
+                return v;
+            }
             return fromDateValue(DateTimeUtils.parseDateValue(s, 0, s.length()));
         } catch (Exception e) {
             throw DbException.get(ErrorCode.INVALID_DATETIME_CONSTANT_2,
@@ -142,4 +147,39 @@ public class ValueDate extends Value {
         prep.setDate(parameterIndex, getDate());
     }
 
+    @Override
+    public Value add(Value v){
+        switch (v.getType()) {
+            case Value.INT:
+            case Value.LONG:
+            case Value.SHORT:
+            case Value.DECIMAL:
+            case Value.DOUBLE:
+            case Value.FLOAT:
+                final ValueLong valueLong = ValueLong.get(Long.parseLong(DateTimeUtils.formatDateTime(this.getTimestamp(), "yyyyMMddHHmmss", null, null)));
+                final int higherOrder = Value.getHigherOrder(valueLong.getType(), v.getType());
+                return valueLong.convertTo(higherOrder).add(v.convertTo(higherOrder));
+            case ValueInterval.TYPE:
+                return ValueInterval.add(this.getTimestamp(), (ValueInterval) v);
+        }
+        throw DbException.throwInternalError("date + " + v + " 不支持");
+    }
+
+    @Override
+    public Value subtract(Value v){
+        switch (v.getType()) {
+            case Value.INT:
+            case Value.LONG:
+            case Value.SHORT:
+            case Value.DECIMAL:
+            case Value.DOUBLE:
+            case Value.FLOAT:
+                final ValueLong valueLong = ValueLong.get(Long.parseLong(DateTimeUtils.formatDateTime(this.getTimestamp(), "yyyyMMddHHmmss", null, null)));
+                final int higherOrder = Value.getHigherOrder(valueLong.getType(), v.getType());
+                return valueLong.convertTo(higherOrder).subtract(v.convertTo(higherOrder));
+            case ValueInterval.TYPE:
+                return ValueInterval.subtract(this.getTimestamp(), (ValueInterval) v);
+        }
+        throw DbException.throwInternalError("date - " + v + " 不支持");
+    }
 }

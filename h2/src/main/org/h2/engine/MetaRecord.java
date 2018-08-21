@@ -50,7 +50,7 @@ public class MetaRecord implements Comparable<MetaRecord> {
      * @param systemSession the system session
      * @param listener the database event listener
      */
-    void execute(Database db, Session systemSession,
+    public void execute(Database db, Session systemSession,
             DatabaseEventListener listener) {
         try {
             Prepared command = systemSession.prepare(sql);

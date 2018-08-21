@@ -9,9 +9,13 @@ package org.h2.util;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
+import java.util.Locale;
 import java.util.TimeZone;
+
+import org.h2.api.ErrorCode;
 import org.h2.engine.Mode;
 import org.h2.message.DbException;
 import org.h2.value.Value;
@@ -1489,4 +1493,17 @@ public class DateTimeUtils {
         return nanosOfDay - mod;
     }
 
+    /**
+     * Formats a date using a format string.
+     *
+     * @param date the date to format
+     * @param format the format string
+     * @param locale the locale
+     * @param timeZone the timezone
+     * @return the formatted date
+     */
+    public static String formatDateTime(java.util.Date date, String format,
+                                        String locale, String timeZone) {
+        return DateTimeFunctions.formatDateTime(date,format,locale,timeZone);
+        }
 }

@@ -6,6 +6,8 @@
 package org.h2.util;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
 
 /**
  * This class contains static methods to construct commonly used generic objects
@@ -13,6 +15,9 @@ import java.util.ArrayList;
  */
 public class New {
 
+    public static <T> ArrayList<T> arrayList(Collection<T> c) {
+        return new ArrayList<>(c);
+    }
     /**
      * Create a new ArrayList.
      *
@@ -23,4 +28,7 @@ public class New {
         return new ArrayList<>(4);
     }
 
+    public static <K, V> HashMap<K, V> hashMap() {
+        return new HashMap<>();
+    }
 }

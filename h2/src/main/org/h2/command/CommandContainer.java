@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import org.h2.api.DatabaseEventListener;
 import org.h2.command.dml.Explain;
 import org.h2.command.dml.Query;
+import org.h2.engine.Session;
 import org.h2.expression.Parameter;
 import org.h2.expression.ParameterInterface;
 import org.h2.result.ResultInterface;
@@ -26,7 +27,15 @@ public class CommandContainer extends Command {
     private boolean readOnlyKnown;
     private boolean readOnly;
 
-    CommandContainer(Parser parser, String sql, Prepared prepared) {
+    public Prepared getPrepared() {
+        return prepared;
+    }
+
+    public void setPrepared(Prepared prepared) {
+        this.prepared = prepared;
+    }
+
+    public CommandContainer(Parser parser, String sql, Prepared prepared) {
         super(parser, sql);
         prepared.setCommand(this);
         this.prepared = prepared;
@@ -69,11 +78,10 @@ public class CommandContainer extends Command {
 
     private void recompileIfRequired() {
         if (prepared.needRecompile()) {
-            // TODO test with 'always recompile'
             prepared.setModificationMetaId(0);
             String sql = prepared.getSQL();
             ArrayList<Parameter> oldParams = prepared.getParameters();
-            Parser parser = new Parser(session);
+            Parser parser = session.getParser();
             prepared = parser.parse(sql);
             long mod = prepared.getModificationMetaId();
             prepared.setModificationMetaId(0);
@@ -87,6 +95,8 @@ public class CommandContainer extends Command {
                 }
             }
             prepared.prepare();
+            prepared = (session).wrap(prepared);
+            setPrepared(prepared);
             prepared.setModificationMetaId(mod);
             prepareJoinBatch();
         }

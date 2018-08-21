@@ -5,6 +5,8 @@
  */
 package org.h2.command;
 
+import java.sql.SQLException;
+import java.sql.Wrapper;
 import java.util.ArrayList;
 import java.util.List;
 import org.h2.api.DatabaseEventListener;
@@ -24,7 +26,7 @@ import org.h2.value.Value;
  * A prepared statement.
  */
 public abstract class Prepared {
-
+    private Prepared target;
     /**
      * The session.
      */
@@ -73,6 +75,11 @@ public abstract class Prepared {
         modificationMetaId = session.getDatabase().getModificationMetaId();
     }
 
+    public Prepared(Session session,Prepared target) {
+        this.session = session;
+        modificationMetaId = session.getDatabase().getModificationMetaId();
+        this.target = target;
+    }
     /**
      * Check if this command is transactional.
      * If it is not, then it forces the current transaction to commit.
@@ -128,7 +135,7 @@ public abstract class Prepared {
      *
      * @return the meta data modification id
      */
-    long getModificationMetaId() {
+    public long getModificationMetaId() {
         return modificationMetaId;
     }
 
@@ -137,7 +144,7 @@ public abstract class Prepared {
      *
      * @param id the new id
      */
-    void setModificationMetaId(long id) {
+    public void setModificationMetaId(long id) {
         this.modificationMetaId = id;
     }
 
@@ -164,7 +171,7 @@ public abstract class Prepared {
      *
      * @throws DbException if any parameter has not been set
      */
-    protected void checkParameters() {
+    public void checkParameters() {
         if (parameters != null) {
             for (Parameter param : parameters) {
                 param.checkSet();
@@ -244,7 +251,7 @@ public abstract class Prepared {
      *
      * @return the object id or 0 if not set
      */
-    protected int getCurrentObjectId() {
+    public int getCurrentObjectId() {
         return objectId;
     }
 
@@ -254,7 +261,7 @@ public abstract class Prepared {
      *
      * @return the object id
      */
-    protected int getObjectId() {
+    public int getObjectId() {
         int id = objectId;
         if (id == 0) {
             id = session.getDatabase().allocateObjectId();
@@ -312,7 +319,7 @@ public abstract class Prepared {
      * @param startTimeNanos when the statement was started
      * @param rowCount the query or update row count
      */
-    void trace(long startTimeNanos, int rowCount) {
+    public void trace(long startTimeNanos, int rowCount) {
         if (session.getTrace().isInfoEnabled() && startTimeNanos > 0) {
             long deltaTimeNanos = System.nanoTime() - startTimeNanos;
             String params = Trace.formatParams(parameters);
@@ -343,7 +350,7 @@ public abstract class Prepared {
      *
      * @param rowNumber the row number
      */
-    protected void setCurrentRowNumber(int rowNumber) {
+    public void setCurrentRowNumber(int rowNumber) {
         if ((++rowScanCount & 127) == 0) {
             checkCanceled();
         }
@@ -387,7 +394,7 @@ public abstract class Prepared {
      * @param values the value list
      * @return the SQL snippet
      */
-    protected static String getSQL(Value[] values) {
+    public static String getSQL(Value[] values) {
         StatementBuilder buff = new StatementBuilder();
         for (Value v : values) {
             buff.appendExceptFirst(", ");
@@ -404,7 +411,7 @@ public abstract class Prepared {
      * @param list the expression list
      * @return the SQL snippet
      */
-    protected static String getSQL(Expression[] list) {
+    public static String getSQL(Expression[] list) {
         StatementBuilder buff = new StatementBuilder();
         for (Expression e : list) {
             buff.appendExceptFirst(", ");
@@ -423,7 +430,7 @@ public abstract class Prepared {
      * @param values the values of the row
      * @return the exception
      */
-    protected DbException setRow(DbException e, int rowId, String values) {
+    public DbException setRow(DbException e, int rowId, String values) {
         StringBuilder buff = new StringBuilder();
         if (sqlStatement != null) {
             buff.append(sqlStatement);
@@ -459,4 +466,5 @@ public abstract class Prepared {
     public Session getSession() {
         return session;
     }
+
 }

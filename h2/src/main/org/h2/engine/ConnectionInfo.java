@@ -435,7 +435,7 @@ public class ConnectionInfo implements Cloneable {
      *
      * @return the password hash
      */
-    byte[] getUserPasswordHash() {
+    public byte[] getUserPasswordHash() {
         return userPasswordHash;
     }
 

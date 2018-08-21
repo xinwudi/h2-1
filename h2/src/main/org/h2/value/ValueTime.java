@@ -109,6 +109,9 @@ public class ValueTime extends Value {
      */
     public static ValueTime parse(String s) {
         try {
+            if (s.matches("\\d{1,2}:\\d{1,2}")){
+                s = s + ":00";
+            }
             return fromNanos(DateTimeUtils.parseTimeNanos(s, 0, s.length(), false));
         } catch (Exception e) {
             throw DbException.get(ErrorCode.INVALID_DATETIME_CONSTANT_2,

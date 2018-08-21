@@ -10,6 +10,7 @@ import java.util.Arrays;
 import org.h2.engine.Database;
 import org.h2.engine.Session;
 import org.h2.engine.SysProperties;
+import org.h2.function.Range;
 import org.h2.index.IndexCondition;
 import org.h2.message.DbException;
 import org.h2.table.Column;
@@ -201,9 +202,13 @@ public class Comparison extends Condition {
                     // once.
                     if (constType != resType) {
                         Column column = ((ExpressionColumn) left).getColumn();
-                        right = ValueExpression.get(r.convertTo(resType,
-                                MathUtils.convertLongToInt(left.getPrecision()),
-                                session.getDatabase().getMode(), column, column.getEnumerators()));
+                        try {
+                            right = ValueExpression.get(r.convertTo(resType,
+                                    MathUtils.convertLongToInt(left.getPrecision()),
+                                    session.getDatabase().getMode(), column, column.getEnumerators()));
+                        } catch (Exception e) {
+                            //do nothing
+                        }
                     }
                 } else if (right instanceof Parameter) {
                     ((Parameter) right).setColumn(
@@ -262,16 +267,22 @@ public class Comparison extends Condition {
                 return ValueNull.INSTANCE;
             }
         }
+        if(l instanceof Range.ValueRange || r instanceof Range.ValueRange){
+            return ValueBoolean.get(compareNotNull(session.getDatabase(), l, r, compareType));
+        }
         int dataType = Value.getHigherOrder(left.getType(), right.getType());
-        if (dataType == Value.ENUM) {
-            String[] enumerators = getEnumerators(l, r);
-            l = l.convertToEnum(enumerators);
-            r = r.convertToEnum(enumerators);
-        } else {
+        try {
+            l = l.convertTo(dataType);
+            r = r.convertTo(dataType);
+        }catch (DbException e){
+            /**
+             * 尝试反向转换比较
+             */
+            dataType = (dataType == left.getType()) ? right.getType() : left.getType();
             l = l.convertTo(dataType);
             r = r.convertTo(dataType);
         }
-        boolean result = compareNotNull(database, l, r, compareType);
+        boolean result = compareNotNull(session.getDatabase(), l, r, compareType);
         return ValueBoolean.get(result);
     }
 
@@ -553,7 +564,7 @@ public class Comparison extends Condition {
      * @param and true for AND, false for OR
      * @return null or the third condition
      */
-    Expression getAdditional(Session session, Comparison other, boolean and) {
+    public Expression getAdditional(Session session, Comparison other, boolean and) {
         if (compareType == other.compareType && compareType == EQUAL) {
             boolean lc = left.isConstant();
             boolean rc = right.isConstant();

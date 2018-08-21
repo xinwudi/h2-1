@@ -131,6 +131,27 @@ public class ValueTimestamp extends Value {
         return parse(s, null);
     }
 
+    public static String patch(String s) {
+        if (s.matches("[-]?\\d+([.]\\d+)*")) {
+            long value = (long) Double.parseDouble(s);
+            if (value > 0) {
+                if (value < 10000000) {
+                    value += 20000000;
+                }
+                if (value < 99999999) {
+                    s = value / 10000 + "-" + (value / 100) % 100 + "-" + (value % 100);
+                }
+            }
+        }
+        if (s.length() == 8 && !s.contains("-")) {
+            String year = s.substring(0, 4);
+            String month = s.substring(4, 6);
+            String day = s.substring(6);
+            s = year + '-' + month + '-' + day;
+        }
+        return s;
+    }
+
     /**
      * Parse a string to a ValueTimestamp, using the given {@link Mode}.
      * This method supports the format +/-year-month-day[ -]hour[:.]minute[:.]seconds.fractional
@@ -142,6 +163,7 @@ public class ValueTimestamp extends Value {
      */
     public static ValueTimestamp parse(String s, Mode mode) {
         try {
+            s = patch(s);
             return (ValueTimestamp) DateTimeUtils.parseTimestamp(s, mode, false);
         } catch (Exception e) {
             throw DbException.get(ErrorCode.INVALID_DATETIME_CONSTANT_2,
@@ -273,18 +295,59 @@ public class ValueTimestamp extends Value {
 
     @Override
     public Value add(Value v) {
+        Value o = add(this,v);
+        if (o != null){
+            return o;
+        }
         ValueTimestamp t = (ValueTimestamp) v.convertTo(Value.TIMESTAMP);
         long d1 = DateTimeUtils.absoluteDayFromDateValue(dateValue);
         long d2 = DateTimeUtils.absoluteDayFromDateValue(t.dateValue);
         return DateTimeUtils.normalizeTimestamp(d1 + d2, timeNanos + t.timeNanos);
     }
 
+    public static Value add(ValueTimestamp timestamp, Value v) {
+        switch (v.getType()) {
+            case Value.INT:
+            case Value.LONG:
+            case Value.SHORT:
+            case Value.DECIMAL:
+            case Value.DOUBLE:
+            case Value.FLOAT:
+                final ValueLong valueLong = ValueLong.get(Long.parseLong(DateTimeUtils.formatDateTime(timestamp.getTimestamp(), "yyyyMMddHHmmss", null, null)));
+                final int higherOrder = Value.getHigherOrder(valueLong.getType(), v.getType());
+                return valueLong.convertTo(higherOrder).add(v.convertTo(higherOrder));
+            case ValueInterval.TYPE:
+                return ValueInterval.add(timestamp, (ValueInterval) v);
+        }
+        throw DbException.throwInternalError("timestamp + " + v + " 不支持");
+    }
+
     @Override
     public Value subtract(Value v) {
+        Value o = subtract(this,v);
+        if (o != null){
+            return o;
+        }
         ValueTimestamp t = (ValueTimestamp) v.convertTo(Value.TIMESTAMP);
         long d1 = DateTimeUtils.absoluteDayFromDateValue(dateValue);
         long d2 = DateTimeUtils.absoluteDayFromDateValue(t.dateValue);
         return DateTimeUtils.normalizeTimestamp(d1 - d2, timeNanos - t.timeNanos);
     }
 
+    public static Value subtract(ValueTimestamp timestamp, Value v) {
+        switch (v.getType()) {
+            case Value.INT:
+            case Value.LONG:
+            case Value.SHORT:
+            case Value.DECIMAL:
+            case Value.DOUBLE:
+            case Value.FLOAT:
+                final ValueLong valueLong = ValueLong.get(Long.parseLong(DateTimeUtils.formatDateTime(timestamp.getTimestamp(), "yyyyMMddHHmmss", null, null)));
+                final int higherOrder = Value.getHigherOrder(valueLong.getType(), v.getType());
+                return valueLong.convertTo(higherOrder).subtract(v.convertTo(higherOrder));
+            case ValueInterval.TYPE:
+                return ValueInterval.subtract(timestamp, (ValueInterval) v);
+        }
+        throw DbException.throwInternalError("timestamp - " + v + " 不支持");
+    }
 }

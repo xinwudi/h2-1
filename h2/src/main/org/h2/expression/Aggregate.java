@@ -5,10 +5,8 @@
  */
 package org.h2.expression;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
+import java.util.*;
+
 import org.h2.api.ErrorCode;
 import org.h2.command.dml.Select;
 import org.h2.command.dml.SelectOrderBy;
@@ -182,14 +180,14 @@ public class Aggregate extends Expression {
         // PostgreSQL compatibility: string_agg(expression, delimiter)
         addAggregate("STRING_AGG", AggregateType.GROUP_CONCAT);
         addAggregate("STDDEV_SAMP", AggregateType.STDDEV_SAMP);
-        addAggregate("STDDEV", AggregateType.STDDEV_SAMP);
+        addAggregate("STDDEV", AggregateType.STDDEV_POP);
         addAggregate("STDDEV_POP", AggregateType.STDDEV_POP);
         addAggregate("STDDEVP", AggregateType.STDDEV_POP);
         addAggregate("VAR_POP", AggregateType.VAR_POP);
         addAggregate("VARP", AggregateType.VAR_POP);
         addAggregate("VAR_SAMP", AggregateType.VAR_SAMP);
         addAggregate("VAR", AggregateType.VAR_SAMP);
-        addAggregate("VARIANCE", AggregateType.VAR_SAMP);
+        addAggregate("VARIANCE", AggregateType.VAR_POP);
         addAggregate("BOOL_OR", AggregateType.BOOL_OR);
         // HSQLDB compatibility, but conflicts with x > EVERY(...)
         addAggregate("SOME", AggregateType.BOOL_OR);
@@ -216,9 +214,16 @@ public class Aggregate extends Expression {
      * @return null if no aggregate function has been found, or the aggregate type
      */
     public static AggregateType getAggregateType(String name) {
+        final Set<String> disableFunctions = UserFunction.DISABLE_FUNCTIONS;
+        if (disableFunctions.contains(name)) {
+            throw DbException.throwInternalError("function " + name.toLowerCase() + "() disabled by vds! ");
+        }
         return AGGREGATES.get(name);
     }
 
+    public int getAggregateType() {
+        return type.ordinal();
+    }
     /**
      * Set the order for GROUP_CONCAT() aggregate.
      *
@@ -430,6 +435,7 @@ public class Aggregate extends Expression {
 
     @Override
     public int getType() {
+        if(type == AggregateType.AVG) return 7;
         return dataType;
     }
 
@@ -584,6 +590,7 @@ public class Aggregate extends Expression {
 
     @Override
     public int getScale() {
+        if(type == AggregateType.AVG) return 17;
         return scale;
     }
 

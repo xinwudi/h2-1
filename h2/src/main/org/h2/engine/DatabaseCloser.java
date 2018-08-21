@@ -14,7 +14,7 @@ import org.h2.message.Trace;
  * close a connection. A database closer object only exists if there is no user
  * connected to the database.
  */
-class DatabaseCloser extends Thread {
+public class DatabaseCloser extends Thread {
 
     private final boolean shutdownHook;
     private final Trace trace;
@@ -32,7 +32,7 @@ class DatabaseCloser extends Thread {
      * Stop and disable the database closer. This method is called after the
      * database has been closed, or after a session has been created.
      */
-    void reset() {
+    public void reset() {
         synchronized (this) {
             databaseRef = null;
         }

@@ -7,12 +7,13 @@ package org.h2.expression;
 
 import org.h2.engine.Database;
 import org.h2.expression.Aggregate.AggregateType;
+import org.h2.message.DbException;
 import org.h2.value.Value;
 
 /**
  * Abstract class for the computation of an aggregate.
  */
-abstract class AggregateData {
+public abstract class AggregateData {
 
     /**
      * Create an AggregateData object of the correct sub-type.
@@ -48,7 +49,10 @@ abstract class AggregateData {
      * @param distinct if the calculation should be distinct
      * @param v the value
      */
-    abstract void add(Database database, int dataType, boolean distinct, Value v);
+    void add(Database database, int dataType, boolean distinct, Value v) {
+        // TODO Auto-generated method stub
+        throw DbException.throwInternalError();
+    }
 
     /**
      * Get the aggregate result.
@@ -58,5 +62,5 @@ abstract class AggregateData {
      * @param distinct if distinct is used
      * @return the value
      */
-    abstract Value getValue(Database database, int dataType, boolean distinct);
+    public abstract Value getValue(Database database, int dataType, boolean distinct);
 }
