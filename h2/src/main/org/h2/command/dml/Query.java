@@ -577,7 +577,7 @@ public abstract class Query extends Prepared {
      * @param session the session
      * @return the sample size
      */
-    int getSampleSizeValue(Session session) {
+    public int getSampleSizeValue(Session session) {
         if (sampleSizeExpr == null) {
             return 0;
         }
