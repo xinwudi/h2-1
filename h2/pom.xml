@@ -2,13 +2,13 @@
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>com.h2database</groupId>
+  <groupId>com.github.bj-tydic</groupId>
   <artifactId>h2</artifactId>
-  <version>1.4.196-TYDIC-01</version>
+  <version>1.0</version>
   <packaging>jar</packaging>
-  <name>H2 Database Engine</name>
-  <url>http://www.h2database.com</url>
-  <description>H2 Database Engine</description>
+  <name>H2 Database Engine (MySQL compatibility enhancement)</name>
+  <url>https://github.com/bj-tydic/h2database</url>
+  <description>base on h2database 1.4.196. for more information, see http://h2database.com/</description>
 
   <licenses>
     <license>
