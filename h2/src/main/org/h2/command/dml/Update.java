@@ -40,6 +40,7 @@ import org.h2.value.ValueNull;
 public class Update extends Prepared {
 
     private Expression condition;
+
     private TableFilter targetTableFilter;// target of update
     /**
      * This table filter is for MERGE..USING support - not used in stand-alone DML
@@ -268,4 +269,9 @@ public class Update extends Prepared {
     public void setSourceTableFilter(TableFilter sourceTableFilter) {
         this.sourceTableFilter = sourceTableFilter;
     }
+
+    public TableFilter getTableFilter() {
+        return targetTableFilter;
+    }
+
 }
