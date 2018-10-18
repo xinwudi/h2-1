@@ -39,7 +39,7 @@ public class MVPrimaryIndex extends BaseIndex {
 
     private final MVTable mvTable;
     private final String mapName;
-    private final TransactionMap<Value, Value> dataMap;
+    protected final TransactionMap<Value, Value> dataMap;
     private final AtomicLong lastKey = new AtomicLong(0);
     private int mainIndexColumn = -1;
 
@@ -359,7 +359,7 @@ public class MVPrimaryIndex extends BaseIndex {
      * @param session the session
      * @return the map
      */
-    TransactionMap<Value, Value> getMap(Session session) {
+    protected TransactionMap<Value, Value> getMap(Session session) {
         if (session == null) {
             return dataMap;
         }

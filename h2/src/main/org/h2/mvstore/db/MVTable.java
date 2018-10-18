@@ -101,8 +101,8 @@ public class MVTable extends TableBase {
         }
     }
 
-    private MVPrimaryIndex primaryIndex;
-    private final ArrayList<Index> indexes = New.arrayList();
+    protected MVPrimaryIndex primaryIndex;
+    protected final ArrayList<Index> indexes = New.arrayList();
     private volatile long lastModificationId;
     private volatile Session lockExclusiveSession;
 
@@ -146,7 +146,7 @@ public class MVTable extends TableBase {
      *
      * @param session the session
      */
-    void init(Session session) {
+    protected void init(Session session) {
         primaryIndex = new MVPrimaryIndex(session.getDatabase(), this, getId(),
                 IndexColumn.wrap(getColumns()), IndexType.createScan(true));
         indexes.add(primaryIndex);
