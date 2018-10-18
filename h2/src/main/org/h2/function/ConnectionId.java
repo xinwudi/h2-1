@@ -12,6 +12,6 @@ public class ConnectionId {
     public static final String NAME = "CONNECTION_ID";
 
     public Value getValueWithArgs(Session session, Expression[] args) {
-        return ValueInt.get(0);
+        return ValueInt.get(session.getId());
     }
 }
